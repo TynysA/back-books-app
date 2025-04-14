@@ -5,11 +5,17 @@ const authRouter = require("./router/authRouter");
 const booksRouter = require("./router/booksRouter");
 
 const cors = require("cors");
+const corsOptions = {
+    origin: ['http://localhost:8000','http://localhost:8002', 'https://your-frontend-app.vercel.app' ], // 👈 добавь сюда домен фронта
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+};
+
 
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/books", booksRouter);
