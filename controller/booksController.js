@@ -42,10 +42,8 @@ class booksController {
             }
 
 
-            const bookExt = path.extname(file[0].originalname); // includes the dot, e.g., ".fb2"
-            const coverExt = path.extname(cover[0].originalname); // e.g., ".jpg"
-            const bookPath = `files/${id}${bookExt}`;
-            const coverPath = `cover/${id}_cover${coverExt}`;
+            const bookPath = `files/${id}`;
+            const coverPath = `cover/${id}_cover`;
 
             // Upload the book file
             const { data: bookData, error: bookError } = await supabase.storage
@@ -113,6 +111,24 @@ class booksController {
             console.log(e);
         }
     }
+    async getAllAuthors(req, res) {
+        try {
+            // Получаем только поле author из всех книг
+            const books = await Books.find({}, 'author');
+
+            // Разворачиваем массивы авторов, т.к. author — это массив
+            const allAuthors = books.flatMap(book => book.author);
+
+            // Оставляем только уникальные имена авторов
+            const uniqueAuthors = [...new Set(allAuthors)];
+
+            res.json({ authors: uniqueAuthors });
+        } catch (e) {
+            console.error("Error fetching authors:", e);
+            res.status(500).json({ error: "Failed to fetch authors" });
+        }
+    }
+
 }
 
 module.exports = new booksController();

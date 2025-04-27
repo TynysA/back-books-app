@@ -14,6 +14,11 @@ const path = require('path');
 
 router.get("/", booksController.getBooks);
 router.get("/:bookId", booksController.getBook);
+
+router.get("/authors", booksController.getAllAuthors);
+
+
+
 router.post("/add", booksController.addBooks);
 router.post("/upload/:id",
     roleMiddleware(["ADMIN"]),                      // Only allow ADMIN users
