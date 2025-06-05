@@ -10,9 +10,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 
 router.get("/", booksController.getBooks);
+router.get("/authors", booksController.getAllAuthors);
 router.get("/:bookId", booksController.getBook);
 
-router.get("/authors", booksController.getAllAuthors);
 
 
 
