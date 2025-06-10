@@ -21,68 +21,78 @@ class booksController {
             console.log(e);
         }
     }
-    async uploadImages(req, res) {
+    async uploadFiles(req, res) {
         try {
             console.log("Uploading files:", req.files);
 
-            if (!req.files || !req.files.file || !req.files.cover) {
-                return res.status(400).json({ error: "Both book file and cover image are required" });
+            const { epub, fb2, cover } = req.files;
+
+            if (!epub && !fb2 && !cover) {
+                return res.status(400).json({ error: "At least one file (epub, fb2, or cover) must be provided" });
             }
 
             if (!process.env.SUPABASE_BUCKET) {
                 return res.status(500).json({ error: "Bucket name is missing in environment variables" });
             }
 
-            const { file, cover } = req.files;
-
-            // Retrieve the ID from URL parameters
             const { id } = req.params;
             if (!id) {
                 return res.status(400).json({ error: "ID is required to name the files" });
             }
 
+            const urls = {};
 
-            const bookPath = `files/${id}`;
-            const coverPath = `cover/${id}_cover`;
+            // Upload EPUB file if exists
+            if (epub && epub.length > 0) {
+                const epubPath = `epub/${id}.epub`;
+                const { data, error } = await supabase.storage
+                    .from(process.env.SUPABASE_BUCKET)
+                    .upload(epubPath, epub[0].buffer, {
+                        contentType: epub[0].mimetype,
+                        upsert: true,
+                    });
+                if (error) throw error;
 
-            // Upload the book file
-            const { data: bookData, error: bookError } = await supabase.storage
-                .from(process.env.SUPABASE_BUCKET)
-                .upload(bookPath, file[0].buffer, {
-                    contentType: file[0].mimetype,
-                    upsert: false,
-                });
-
-            if (bookError) {
-                throw bookError;
+                urls.epubUrl = supabase.storage.from(process.env.SUPABASE_BUCKET).getPublicUrl(epubPath).data.publicUrl;
             }
 
-            // Upload the cover image
-            const { data: coverData, error: coverError } = await supabase.storage
-                .from(process.env.SUPABASE_BUCKET)
-                .upload(coverPath, cover[0].buffer, {
-                    contentType: cover[0].mimetype,
-                    upsert: false,
-                });
+            // Upload FB2 file if exists
+            if (fb2 && fb2.length > 0) {
+                const fb2Path = `fb2/${id}.fb2`;
+                const { data, error } = await supabase.storage
+                    .from(process.env.SUPABASE_BUCKET)
+                    .upload(fb2Path, fb2[0].buffer, {
+                        contentType: fb2[0].mimetype,
+                        upsert: true,
+                    });
+                if (error) throw error;
 
-            if (coverError) {
-                throw coverError;
+                urls.fb2Url = supabase.storage.from(process.env.SUPABASE_BUCKET).getPublicUrl(fb2Path).data.publicUrl;
             }
 
-            // Generate public URLs for the files
-            const bookUrl = supabase.storage.from(process.env.SUPABASE_BUCKET).getPublicUrl(bookPath);
-            const coverUrl = supabase.storage.from(process.env.SUPABASE_BUCKET).getPublicUrl(coverPath);
+            // Upload cover
+            if (cover && cover.length > 0) {
+                const coverPath = `cover/${id}_cover`;
+                const {data: coverData, error: coverError} = await supabase.storage
+                    .from(process.env.SUPABASE_BUCKET)
+                    .upload(coverPath, cover[0].buffer, {
+                        contentType: cover[0].mimetype,
+                        upsert: true,
+                    });
+                if (coverError) throw coverError;
 
+                urls.coverUrl = supabase.storage.from(process.env.SUPABASE_BUCKET).getPublicUrl(coverPath).data.publicUrl;
+            }
             res.json({
                 message: "Upload successful",
-                bookUrl,
-                coverUrl,
+                uploaded: Object.keys(urls).length > 0 ? urls : "Nothing uploaded",
             });
         } catch (err) {
             console.error("Upload error:", err);
             res.status(500).json({ error: err.message });
         }
     }
+
     async getBooks(req, res) {
         try {
             const { lang } = req?.query;

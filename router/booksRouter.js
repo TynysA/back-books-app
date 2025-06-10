@@ -19,8 +19,12 @@ router.get("/:bookId", booksController.getBook);
 router.post("/add", booksController.addBooks);
 router.post("/upload/:id",
     roleMiddleware(["ADMIN"]),                      // Only allow ADMIN users
-    upload.fields([{ name: 'file' }, { name: 'cover' }]), // Handle two files: book and cover
-    booksController.uploadImages
+    upload.fields([
+        { name: 'epub', maxCount: 1 },
+        { name: 'fb2', maxCount: 1 },
+        { name: 'cover', maxCount: 1 }
+    ]),
+    booksController.uploadFiles
 );
 
 
