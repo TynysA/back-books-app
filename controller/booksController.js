@@ -131,8 +131,12 @@ class booksController {
 
             // Оставляем только уникальные имена авторов
             const uniqueAuthors = [...new Set(allAuthors)];
+            const authorOptions = uniqueAuthors.map(name => ({
+                label: name,
+                value: name
+            }));
 
-            res.json({ authors: uniqueAuthors });
+            res.json( authorOptions );
         } catch (e) {
             console.error("Error fetching authors:", e);
             res.status(500).json({ error: "Failed to fetch authors" });
