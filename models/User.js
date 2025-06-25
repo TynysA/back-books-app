@@ -6,6 +6,7 @@ const User = new Schema({
     role: { type: String, ref: "Role" },
     avatar: { type: String, required: false },
 
+    userBg: { type: String, required: false },
     likedBooks: [{ type: Schema.Types.ObjectId, ref: 'Book' }],
     library: [{ type: Schema.Types.ObjectId, ref: 'Book' }],
 });
