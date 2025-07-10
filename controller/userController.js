@@ -1,34 +1,42 @@
-const User = require("../models/User");
+const User = require('../models/User');
+const Book = require('../models/Book');
+const {createClient} = require("@supabase/supabase-js"); // не забудь подключить модель Book
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-class userController {
+
+class UserController {
     async likeBook(req, res) {
         try {
             const userId = req.user.id;
             const { bookId } = req.params;
 
-            // (опционально) проверить, существует ли книга
             const book = await Book.findById(bookId);
-            if (!book) return res.status(404).json({ message: 'Книга не найдена' });
+            if (!book) {
+                return res.status(404).json({ message: 'Книга не найдена' });
+            }
 
             await User.findByIdAndUpdate(
                 userId,
-                { $addToSet: { likedBooks: bookId } }, // $addToSet — без дубликатов
+                { $addToSet: { likedBooks: bookId } },
                 { new: true }
             );
 
-            res.json({ message: 'Книга добавлена в понравившиеся' });
+            return res.json({ message: 'Книга добавлена в понравившиеся' });
         } catch (e) {
             console.error('Ошибка при добавлении в likedBooks:', e);
-            res.status(500).json({ message: 'Ошибка сервера' });
+            return res.status(500).json({ message: 'Ошибка сервера' });
         }
     }
+
     async addToLibrary(req, res) {
         try {
             const userId = req.user.id;
             const { bookId } = req.params;
 
             const book = await Book.findById(bookId);
-            if (!book) return res.status(404).json({ message: 'Книга не найдена' });
+            if (!book) {
+                return res.status(404).json({ message: 'Книга не найдена' });
+            }
 
             await User.findByIdAndUpdate(
                 userId,
@@ -36,57 +44,79 @@ class userController {
                 { new: true }
             );
 
-            res.json({ message: 'Книга добавлена в библиотеку' });
+            return res.json({ message: 'Книга добавлена в библиотеку' });
         } catch (e) {
             console.error('Ошибка при добавлении в library:', e);
-            res.status(500).json({ message: 'Ошибка сервера' });
+            return res.status(500).json({ message: 'Ошибка сервера' });
         }
     }
+
     async updateUserBg(req, res) {
         try {
             const userId = req.user.id;
-            const { userBg } = req.body;
+
+            if (!req.file) {
+                return res.status(400).json({ message: 'Файл не загружен' });
+            }
+
+            const filePath = `backgrounds/${userId}`;
+            const { data, error } = await supabase.storage
+                .from(process.env.SUPABASE_BUCKET)
+                .upload(filePath, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: true,
+                });
+
+            if (error) throw error;
+
+            const { publicUrl } = supabase.storage
+                .from(process.env.SUPABASE_BUCKET)
+                .getPublicUrl(filePath).data;
 
             const updatedUser = await User.findByIdAndUpdate(
                 userId,
-                { userBg: filePath },
-                { new: true } // <<< Вот это важно! Возвращает обновлённого пользователя
+                { userBg: publicUrl },
+                { new: true }
             );
 
-            res.json(updatedUser);
+            if (!updatedUser) {
+                return res.status(404).json({ message: 'Пользователь не найден' });
+            }
+
+            return res.json(updatedUser);
         } catch (e) {
             console.error('Ошибка при обновлении userBg:', e);
-            res.status(500).json({ message: 'Ошибка сервера' });
+            return res.status(500).json({ message: 'Ошибка сервера' });
         }
     }
+
     async getUserBooks(req, res) {
         try {
             const { userId } = req.params;
 
             const user = await User.findById(userId)
-                .populate('likedBooks') // получаем полную информацию о книге
+                .populate('likedBooks')
                 .populate('library');
 
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            // Объединяем likedBooks и library, убираем дубликаты по book._id
             const allBooks = [...user.likedBooks, ...user.library];
             const uniqueBooksMap = new Map();
 
-            allBooks.forEach(book => {
+            allBooks.forEach((book) => {
                 uniqueBooksMap.set(book._id.toString(), book);
             });
 
             const uniqueBooks = Array.from(uniqueBooksMap.values());
 
-            res.json(uniqueBooks); // возвращаем массив полных объектов Book
+            return res.json(uniqueBooks);
         } catch (e) {
             console.error('Error fetching user books:', e);
-            res.status(500).json({ error: 'Failed to fetch books' });
+            return res.status(500).json({ error: 'Failed to fetch books' });
         }
     }
 }
 
-module.exports = new userController();
+module.exports = new UserController();
