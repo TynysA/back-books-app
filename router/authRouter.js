@@ -17,7 +17,7 @@ router.post(
     authController.registration
 );
 router.post("/login", authController.login);
-router.get("/users", roleMiddleware(["ADMIN"]), authController.getUsers);
+router.get("/users", authMiddleware, authController.getUsers);
 router.get("/user", authMiddleware, authController.getUser);
 
 module.exports = router;

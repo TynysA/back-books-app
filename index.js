@@ -6,7 +6,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const authRouter = require("./router/authRouter");
 const booksRouter = require("./router/booksRouter");
-
+const userRouter = require("./router/userRouter");
 const cors = require("cors");
 const corsOptions = {
     origin: ['http://localhost:8000','http://localhost:8002', 'https://your-frontend-app.vercel.app' ], // 👈 добавь сюда домен фронта
@@ -22,6 +22,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/books", booksRouter);
+app.use('/user', userRouter)
 
 // Initialize Supabase client
 

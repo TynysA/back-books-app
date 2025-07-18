@@ -10,14 +10,14 @@ class UserController {
             const userId = req.user.id;
             const { bookId } = req.params;
 
-            const book = await Book.findById(bookId);
+            const book = await Book.findOne({ bookId: bookId });
             if (!book) {
                 return res.status(404).json({ message: 'Книга не найдена' });
             }
 
             await User.findByIdAndUpdate(
                 userId,
-                { $addToSet: { likedBooks: bookId } },
+                { $addToSet: { likedBooks: book._id } },
                 { new: true }
             );
 
@@ -33,14 +33,15 @@ class UserController {
             const userId = req.user.id;
             const { bookId } = req.params;
 
-            const book = await Book.findById(bookId);
+            const book = await Book.findOne({ bookId: bookId });
+            console.log(book);
             if (!book) {
                 return res.status(404).json({ message: 'Книга не найдена' });
             }
 
             await User.findByIdAndUpdate(
                 userId,
-                { $addToSet: { library: bookId } },
+                { $addToSet: { library: book._id } },
                 { new: true }
             );
 
